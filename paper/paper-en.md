@@ -142,7 +142,7 @@ Phase 5: LOCK
 ## 4. Implementation
 
 Reference implementation available at:
-**[github.com/febriandwi/eks-architect](https://github.com/febriandwi/eks-architect)** *(coming soon)*
+**[github.com/febriandwi/eks-architect](https://github.com/febritecno/eks-architect)**
 
 Stack: Python 3.13 · DeepSeek Coder V2 Lite · Laya MLX · FastAPI · Apple Silicon
 
