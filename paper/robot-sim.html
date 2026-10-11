@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EKS Robot — Evolusi dari Masalah</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#e2e8f0;font-family:'SF Mono','Fira Code',monospace;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid #1e293b;gap:10px;flex-shrink:0}
+.topbar h1{font-size:.8rem;font-weight:700;background:linear-gradient(90deg,#6ee7f7,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex:1}
+.badge{padding:3px 10px;border-radius:999px;font-size:.62rem;font-weight:700;transition:all .3s}
+.btn{padding:5px 13px;border-radius:6px;border:1px solid #334155;background:#111827;color:#94a3b8;font-size:.72rem;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn:hover{background:#1e293b;color:#e2e8f0}
+.btn.go{background:#1e3a5f;color:#6ee7f7;border-color:#6ee7f744}
+.btn.warn{background:#2d1515;color:#f47272;border-color:#f4727244}
+.main{display:grid;grid-template-columns:230px 1fr 270px;flex:1;overflow:hidden;gap:1px;background:#111827}
+.panel{background:#0a0e1a;overflow:hidden;display:flex;flex-direction:column}
+.ph{padding:8px 12px;border-bottom:1px solid #1e293b;font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#475569;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sensor-list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:5px}
+.sc{background:#0f172a;border:1px solid #1e293b;border-radius:7px;padding:8px 10px;transition:border-color .2s}
+.sc.hot{border-color:#f4727266;background:#1a0808}
+.sc.mid{border-color:#6ee7f744}
+.sn{font-size:.65rem;font-weight:700;display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.sb-wrap{height:3px;background:#1e293b;border-radius:2px;overflow:hidden}
+.sb{height:100%;border-radius:2px;transition:width .2s}
+.sv{font-size:.59rem;color:#475569;display:flex;justify-content:space-between;margin-top:2px}
+#arena-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;position:relative;overflow:hidden}
+canvas{border:1px solid #1e293b;border-radius:8px}
+/* LLM overlay */
+#llm-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:#0a0e1aee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;pointer-events:none;transition:opacity .3s;border-radius:8px}
+#llm-overlay.show{opacity:1}
+.llm-title{font-size:.9rem;font-weight:700;color:#a78bfa}
+.llm-line{font-size:.72rem;color:#6ee7f7;max-width:360px;text-align:center;line-height:1.6;min-height:1.2em}
+.llm-progress{width:240px;height:3px;background:#1e293b;border-radius:2px;overflow:hidden;margin-top:4px}
+.llm-prog-bar{height:100%;background:linear-gradient(90deg,#a78bfa,#6ee7f7);border-radius:2px;width:0;transition:width .4s}
+.issue-badge{padding:4px 12px;border-radius:6px;background:#f4727222;color:#f47272;border:1px solid #f4727244;font-size:.68rem;font-weight:700}
+/* right */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:7px 10px;border-bottom:1px solid #1e293b;flex-shrink:0}
+.sm{text-align:center;padding:5px;background:#0f172a;border-radius:6px;border:1px solid #1e293b}
+.sm .v{font-size:.85rem;font-weight:700}.sm .l{font-size:.52rem;color:#475569;margin-top:1px}
+.eks-sec{padding:7px 10px;border-bottom:1px solid #1e293b;flex-shrink:0}
+.eks-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:1px;color:#475569;margin-bottom:5px}
+.dec-box{background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:7px 9px}
+.dr{display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:.67rem}
+.dk{color:#64748b}.dv{font-weight:700;font-size:.64rem;padding:1px 6px;border-radius:4px}
+.conf-wrap{height:4px;background:#1e293b;border-radius:2px;overflow:hidden;margin-top:5px}
+.conf-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,#34d399,#6ee7f7);transition:width .3s}
+.schema-box{font-size:.59rem;color:#94a3b8;background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:7px;max-height:100px;overflow-y:auto;line-height:1.7}
+.schema-box .k{color:#6ee7f7}.schema-box .t{color:#fbbf24}.schema-box .s{color:#a78bfa}
+.log-wrap{flex:1;overflow-y:auto;padding:6px 10px}
+.le{font-size:.62rem;padding:2px 0;border-bottom:1px solid #1e293b18;line-height:1.5;opacity:0;animation:fi .2s forwards}
+@keyframes fi{to{opacity:1}}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#1e293b;border-radius:2px}
+.p-seed{background:#a78bfa22;color:#a78bfa}
+.p-deploy{background:#6ee7f722;color:#6ee7f7}
+.p-issue{background:#f4727222;color:#f47272;animation:pulse .6s ease-in-out infinite}
+.p-llm{background:#a78bfa22;color:#a78bfa;animation:pulse .6s ease-in-out infinite}
+.p-lock{background:#34d39922;color:#34d399}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>⚙ EKS Robot — Issue → Reflect → Evolve</h1>
+  <span id="phase-badge" class="badge p-seed">SEED</span>
+  <button class="btn go" id="btn-start" onclick="startSim()">▶ Start</button>
+  <button class="btn" onclick="resetSim()">↺ Reset</button>
+  <button class="btn warn" id="btn-force" onclick="forceReflect()" style="display:none">⚡ Force Issue</button>
+  <div style="width:1px;height:20px;background:#1e293b;margin:0 4px"></div>
+  <span style="font-size:.62rem;color:#475569">Inject:</span>
+  <button class="btn" onclick="injectObs(1)" title="Tambah 1 rintangan dekat robot">+1 🧱</button>
+  <button class="btn" onclick="injectObs(3)" title="Tambah 3 rintangan">+3 🧱</button>
+  <button class="btn" onclick="injectWall()" title="Bangun tembok penghalang di depan robot">🚧 Wall</button>
+  <button class="btn" onclick="injectMaze()" title="Tambah labirin kecil">🌀 Maze</button>
+  <button class="btn" style="color:#f47272;border-color:#f4727244" onclick="injectCage()" title="Kurung robot dengan rintangan">⛓ Cage</button>
+  <div style="width:1px;height:20px;background:#1e293b;margin:0 4px"></div>
+  <!-- EKS API status -->
+  <div id="eks-status" style="display:flex;align-items:center;gap:6px;font-size:.62rem;">
+    <div id="eks-dot" style="width:6px;height:6px;border-radius:50%;background:#475569"></div>
+    <span id="eks-label" style="color:#475569">EKS offline</span>
+  </div>
+</div>
+<div class="main">
+  <!-- LEFT -->
+  <div class="panel">
+    <div class="ph"><div class="dot" style="background:#6ee7f7"></div>Live Sensors</div>
+    <div class="sensor-list" id="sensor-list"></div>
+  </div>
+  <!-- CENTER -->
+  <div class="panel">
+    <div id="arena-wrap">
+      <canvas id="arena"></canvas>
+      <div id="llm-overlay">
+        <div class="issue-badge" id="llm-issue">⚠ stuck detected</div>
+        <div class="llm-title">🧠 LLM Generating Schema</div>
+        <div class="llm-line" id="llm-line">Analyzing issue...</div>
+        <div class="llm-progress"><div class="llm-prog-bar" id="llm-prog"></div></div>
+      </div>
+    </div>
+  </div>
+  <!-- RIGHT -->
+  <div class="panel">
+    <div class="stats-row">
+      <div class="sm"><div class="v" style="color:#6ee7f7" id="s-dec">0</div><div class="l">decisions</div></div>
+      <div class="sm"><div class="v" style="color:#a78bfa" id="s-ver">v1</div><div class="l">schema</div></div>
+      <div class="sm"><div class="v" style="color:#f47272" id="s-evo">0</div><div class="l">evolutions</div></div>
+      <div class="sm"><div class="v" style="color:#34d399" id="s-tgt">0</div><div class="l">targets</div></div>
+    </div>
+    <div class="eks-sec">
+      <div class="eks-lbl">Laya Decision</div>
+      <div class="dec-box">
+        <div class="dr"><span class="dk">direction</span><span class="dv" id="d-dir" style="background:#6ee7f722;color:#6ee7f7">—</span></div>
+        <div class="dr"><span class="dk">obstacle</span><span class="dv" id="d-obs">—</span></div>
+        <div class="dr"><span class="dk">speed</span><span class="dv" id="d-spd" style="background:#a78bfa22;color:#a78bfa">—</span></div>
+        <div id="d-extra"></div>
+        <div class="conf-wrap"><div class="conf-bar" id="conf-bar" style="width:0"></div></div>
+        <div style="font-size:.58rem;color:#475569;text-align:right;margin-top:2px" id="conf-val">0%</div>
+      </div>
+    </div>
+    <div class="eks-sec">
+      <div class="eks-lbl">Schema <span id="s-name" style="color:#a78bfa;font-size:.59rem"></span></div>
+      <div class="schema-box" id="schema-box"></div>
+    </div>
+    <div class="ph" style="border-top:1px solid #1e293b"><div class="dot" style="background:#a78bfa"></div>Event Log</div>
+    <div class="log-wrap" id="log-wrap"></div>
+  </div>
+</div>
+<script>
+// ════════════════ CONFIG ════════════════
+const TILE=16,COLS=38,ROWS=26;
+const W=COLS*TILE,H=ROWS*TILE;
+const canvas=document.getElementById('arena');
+const ctx=canvas.getContext('2d');
+canvas.width=W;canvas.height=H;
+const DIRS=[{dx:1,dy:0},{dx:0,dy:1},{dx:-1,dy:0},{dx:0,dy:-1}];
+const DN=['right','down','left','up'];
+
+// ════════════════ SENSOR DEFS ════════════════
+const SDEFS=[
+  {id:'df',name:'Ultrasonic Front',unit:'cm',max:400,color:'#6ee7f7'},
+  {id:'dl',name:'Ultrasonic Left', unit:'cm',max:400,color:'#6ee7f7'},
+  {id:'dr',name:'Ultrasonic Right',unit:'cm',max:400,color:'#6ee7f7'},
+  {id:'db',name:'Ultrasonic Back', unit:'cm',max:400,color:'#6ee7f7'},
+  {id:'ir',name:'IR Proximity',    unit:'%', max:100,color:'#f47272'},
+  {id:'cam',name:'Camera Clarity', unit:'%', max:100,color:'#a78bfa'},
+  {id:'lid',name:'LiDAR',          unit:'cm',max:600,color:'#fbbf24'},
+  {id:'bat',name:'Battery',        unit:'%', max:100,color:'#34d399'},
+  {id:'ter',name:'Terrain',        unit:'%', max:100,color:'#f59e0b'},
+  {id:'gyr',name:'Gyro Stability', unit:'%', max:100,color:'#60a5fa'},
+];
+let sv={bat:100,gyr:100};
+
+// ════════════════ CAPABILITY POOL ════════════════
+// Each cap: what ISSUE it solves, what new question it adds, what effect it enables
+const CAPS=[
+  {id:'prox',  issue:'stuck at walls',         sensor:'df',  name:'Proximity Scoring',
+   effect:'prox',   q:{proximity:{type:'score',  criteria:['far','medium','near','critical']}}},
+  {id:'speed', issue:'too slow / too fast',    sensor:'df',  name:'Adaptive Speed',
+   effect:'speed',  q:{speed:{type:'score',      criteria:['stop','crawl','walk','run','sprint']}}},
+  {id:'side',  issue:'left-right oscillation', sensor:'dl',  name:'Side Awareness',
+   effect:'side',   q:{side_clear:{type:'choice', criteria:['both','left-only','right-only','neither']}}},
+  {id:'bat',   issue:'unexpected stop',        sensor:'bat', name:'Battery Guard',
+   effect:'bat',    q:{bat_ok:{type:'noul',       instructions:'Battery sufficient to continue?'}}},
+  {id:'ter',   issue:'rough movement',         sensor:'ter', name:'Terrain Scan',
+   effect:'ter',    q:{terrain:{type:'choice',    criteria:['smooth','rough','incline','unknown']}}},
+  {id:'cam',   issue:'collision with obstacles',sensor:'cam',name:'Visual Path Check',
+   effect:'cam',    q:{visual_clear:{type:'noul', instructions:'Camera confirms path clear?'}}},
+  {id:'back',  issue:'cornered in dead-end',   sensor:'db',  name:'Rear Escape',
+   effect:'back',   q:{rear_ok:{type:'noul',      instructions:'Rear path available?'}}},
+  {id:'lidar', issue:'slow target approach',   sensor:'lid', name:'LiDAR Mapping',
+   effect:'lidar',  q:{zone:{type:'choice',       criteria:['open','corridor','junction','trap']}}},
+  {id:'gyr',   issue:'unstable movement',      sensor:'gyr', name:'Gyro Stabilizer',
+   effect:'gyr',    q:{stable:{type:'noul',       instructions:'Robot gyroscopically stable?'}}},
+  {id:'ir',    issue:'micro-collision',        sensor:'ir',  name:'IR Close Guard',
+   effect:'ir',     q:{imm_block:{type:'noul',    instructions:'Immediate IR obstacle detected?'}}},
+];
+
+// ════════════════ SCHEMA STATE ════════════════
+let schemas=[{
+  version:1,name:'Basic Navigation',caps:[],
+  questions:{
+    direction:{type:'choice',criteria:['forward','left','right','stop']},
+    obstacle:{type:'noul',instructions:'Is path blocked ahead?'},
+  }
+}];
+let schemaV=1;
+let activeCaps=new Set();
+let unlockedIds=[];
+let synthCount=0;
+
+// ════════════════ MAP ════════════════
+let map=[],obs=[];
+function buildMap(){
+  map=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  for(let x=0;x<COLS;x++){map[0][x]=1;map[ROWS-1][x]=1;}
+  for(let y=0;y<ROWS;y++){map[y][0]=1;map[y][COLS-1]=1;}
+  // open maze — wide corridors, no dead ends
+  [[4,3,1,7],[10,6,6,1],[17,3,1,7],[23,7,7,1],[30,3,1,6],
+   [4,13,8,1],[14,11,1,5],[21,14,7,1],[29,11,1,6],
+   [4,18,6,1],[12,17,1,5],[20,19,8,1],[30,18,1,5]
+  ].forEach(([x,y,w,h])=>{
+    for(let dy=0;dy<h;dy++)for(let dx=0;dx<w;dx++){
+      const wy=y+dy,wx=x+dx;
+      if(wy>0&&wy<ROWS-1&&wx>0&&wx<COLS-1) map[wy][wx]=1;
+    }
+  });
+  obs=[{x:7,y:6},{x:13,y:4},{x:20,y:5},{x:27,y:4},
+       {x:6,y:15},{x:16,y:14},{x:24,y:10},{x:32,y:15},
+       {x:9,y:21},{x:22,y:21},{x:34,y:9}];
+}
+function blocked(x,y){
+  if(x<0||y<0||x>=COLS||y>=ROWS)return true;
+  if(map[y][x]===1)return true;
+  return obs.some(o=>o.x===x&&o.y===y);
+}
+
+// ════════════════ BFS ════════════════
+function bfs(sx,sy,tx,ty){
+  if(sx===tx&&sy===ty)return -1;
+  const vis=new Uint8Array(COLS*ROWS);
+  const q=[{x:sx,y:sy,first:-1}];
+  vis[sy*COLS+sx]=1;
+  while(q.length){
+    const c=q.shift();
+    for(let d=0;d<4;d++){
+      const nx=c.x+DIRS[d].dx,ny=c.y+DIRS[d].dy;
+      if(nx<0||ny<0||nx>=COLS||ny>=ROWS||vis[ny*COLS+nx]||blocked(nx,ny))continue;
+      const f=c.first<0?d:c.first;
+      if(nx===tx&&ny===ty)return f;
+      vis[ny*COLS+nx]=1;
+      q.push({x:nx,y:ny,first:f});
+    }
+  }
+  return -1;
+}
+
+// ════════════════ ROBOT STATE ════════════════
+let robot={x:2,y:2,dir:0,trail:[]};
+let target={x:32,y:20};
+let simRunning=false,simTick=0;
+let decCount=0,evoCount=0,tgtCount=0;
+let isEvolving=false;
+let posHistory=[]; // track positions to detect issues
+
+// ════════════════ ISSUE DETECTION ════════════════
+// Issues: oscillate (left-right), stuck (same tile), slow-progress (far from target long time)
+const ISSUES={
+  oscillate: {label:'left-right oscillation', check:()=>{
+    if(posHistory.length<8) return false;
+    const dirs=posHistory.slice(-8).map(p=>p.d);
+    let flip=0; for(let i=1;i<dirs.length;i++) if(dirs[i]!==dirs[i-1])flip++;
+    return flip>=6; // flipping direction every tick
+  }},
+  stuck: {label:'not making progress toward target', check:()=>{
+    if(posHistory.length<12) return false;
+    const old=posHistory[posHistory.length-12];
+    const cur=posHistory[posHistory.length-1];
+    const distOld=Math.abs(old.x-target.x)+Math.abs(old.y-target.y);
+    const distCur=Math.abs(cur.x-target.x)+Math.abs(cur.y-target.y);
+    return distCur>=distOld-1; // not getting closer
+  }},
+  corner: {label:'cornered — no forward path', check:()=>{
+    // 3+ sides blocked
+    let walls=0;
+    for(let d=0;d<4;d++) if(blocked(robot.x+DIRS[d].dx,robot.y+DIRS[d].dy))walls++;
+    return walls>=3;
+  }},
+};
+
+function detectIssue(){
+  for(const [id,issue] of Object.entries(ISSUES)){
+    if(issue.check()) return {id,label:issue.label};
+  }
+  return null;
+}
+
+// ════════════════ SENSORS ════════════════
+function ray(x,y,dir,max){
+  const d=DIRS[dir];
+  for(let i=1;i<=max;i++) if(blocked(x+d.dx*i,y+d.dy*i))return i*TILE;
+  return max*TILE;
+}
+function updateSensors(){
+  const {x,y,dir}=robot;
+  sv.df=ray(x,y,dir,18);
+  sv.dl=ray(x,y,(dir+3)%4,14);
+  sv.dr=ray(x,y,(dir+1)%4,14);
+  sv.db=ray(x,y,(dir+2)%4,10);
+  sv.ir=sv.df<2*TILE?60+Math.random()*40:Math.random()*15;
+  sv.cam=sv.df<2*TILE?15+Math.random()*25:70+Math.random()*30;
+  sv.lid=Math.min(sv.df,sv.dl,sv.dr);
+  sv.bat=Math.max(5,(sv.bat||100)-0.025);
+  sv.ter=15+Math.sin(simTick*.07)*15+Math.random()*15;
+  sv.gyr=85+Math.random()*15;
+  renderSensors();
+}
+function renderSensors(){
+  const list=document.getElementById('sensor-list');
+  SDEFS.forEach(def=>{
+    let c=document.getElementById('sc-'+def.id);
+    if(!c){
+      c=document.createElement('div');c.id='sc-'+def.id;c.className='sc';
+      c.innerHTML=`<div class="sn"><div class="dot" style="background:${def.color}"></div><span>${def.name}</span></div>
+        <div class="sb-wrap"><div class="sb" id="sb-${def.id}"></div></div>
+        <div class="sv"><span id="sv-${def.id}">0</span><span id="sp-${def.id}" style="color:${def.color}">0%</span></div>`;
+      list.appendChild(c);
+    }
+    const val=sv[def.id]||0,pct=Math.min(100,val/def.max*100);
+    document.getElementById('sb-'+def.id).style.cssText=`width:${pct}%;background:${def.color}`;
+    document.getElementById('sv-'+def.id).textContent=Math.round(val)+' '+def.unit;
+    document.getElementById('sp-'+def.id).textContent=Math.round(pct)+'%';
+    c.className='sc'+(pct>75?' hot':pct>40?' mid':'');
+  });
+}
+
+// ════════════════ DECIDE ════════════════
+function decide(){
+  const wallF=sv.df<TILE*1.5;
+  const bd=bfs(robot.x,robot.y,target.x,target.y);
+  let dir,speed='normal',conf=0.62;
+
+  // BASE: wall → turn to most open side; else → BFS
+  if(wallF){
+    dir=sv.dl>=sv.dr?'left':'right';
+    speed='slow';conf=0.64;
+  } else {
+    dir=bd>=0?DN[bd]:DN[robot.dir];
+    conf=0.70;
+  }
+
+  // EFFECTS from unlocked caps
+  if(activeCaps.has('prox')&&sv.df<4*TILE&&!wallF){speed='crawl';conf+=.05;}
+  if(activeCaps.has('speed')&&!wallF){
+    speed=sv.df>8*TILE?'sprint':sv.df>4*TILE?'run':sv.df>2*TILE?'walk':'crawl';conf+=.06;
+  }
+  if(activeCaps.has('side')&&wallF){
+    // use both side sensors properly
+    const goLeft=sv.dl>sv.dr&&!blocked(robot.x+DIRS[(robot.dir+3)%4].dx,robot.y+DIRS[(robot.dir+3)%4].dy);
+    dir=goLeft?'left':'right';conf+=.07;
+  }
+  if(activeCaps.has('bat')&&sv.bat<20&&speed==='sprint')speed='walk',conf+=.03;
+  if(activeCaps.has('ter')&&sv.ter>70&&speed==='sprint')speed='run',conf+=.03;
+  if(activeCaps.has('cam')&&sv.cam<25&&!wallF){dir=sv.dl>=sv.dr?'left':'right';conf+=.04;}
+  if(activeCaps.has('back')&&wallF&&sv.db>4*TILE){
+    // can reverse instead of random turn
+    const revX=robot.x+DIRS[(robot.dir+2)%4].dx,revY=robot.y+DIRS[(robot.dir+2)%4].dy;
+    if(!blocked(revX,revY)&&bd>=0)dir=DN[bd],conf+=.05;
+  }
+  if(activeCaps.has('lidar')&&sv.lid<3*TILE&&bd>=0){dir=DN[bd];conf+=.05;}
+  if(activeCaps.has('gyr')&&sv.gyr<50&&speed==='sprint')speed='run',conf+=.02;
+  if(activeCaps.has('ir')&&sv.ir>80){dir=sv.dl>=sv.dr?'left':'right';conf+=.04;}
+
+  conf=Math.min(.99,conf+Math.random()*.02);
+
+  const q=schemas[schemaV-1].questions;
+  const res={direction:dir,obstacle:wallF,conf};
+  if(q.speed)      res.speed=speed;
+  if(q.proximity)  res.proximity=sv.df<2*TILE?'critical':sv.df<4*TILE?'near':sv.df<8*TILE?'medium':'far';
+  if(q.side_clear) res.side_clear=sv.dl>3*TILE&&sv.dr>3*TILE?'both':sv.dl>3*TILE?'left-only':sv.dr>3*TILE?'right-only':'neither';
+  if(q.bat_ok)     res.bat_ok=sv.bat>25;
+  if(q.terrain)    res.terrain=sv.ter>60?'rough':'smooth';
+  if(q.visual_clear) res.visual_clear=sv.cam>50;
+  if(q.rear_ok)    res.rear_ok=sv.db>3*TILE;
+  if(q.zone)       res.zone=sv.lid<2*TILE?'trap':sv.lid<5*TILE?'corridor':sv.lid<10*TILE?'junction':'open';
+  if(q.stable)     res.stable=sv.gyr>70;
+  if(q.imm_block)  res.imm_block=sv.ir>70;
+  return res;
+}
+
+// ════════════════ MOVE ════════════════
+function applyMove(dec){
+  const dm={right:0,down:1,left:2,up:3,forward:robot.dir,stop:robot.dir,
+    reverse:(robot.dir+2)%4,'turn-left':(robot.dir+3)%4,'turn-right':(robot.dir+1)%4,
+    crawl:robot.dir,walk:robot.dir,run:robot.dir,sprint:robot.dir};
+  let nd=dm[dec.direction]??robot.dir;
+
+  // try chosen dir, then clockwise fallback — always find a free cell
+  let moved=false;
+  for(let t=0;t<4;t++){
+    const d=(nd+t)%4;
+    const nx=robot.x+DIRS[d].dx,ny=robot.y+DIRS[d].dy;
+    if(!blocked(nx,ny)){
+      robot.dir=d;
+      robot.trail.push({x:robot.x,y:robot.y});
+      if(robot.trail.length>60)robot.trail.shift();
+      robot.x=nx;robot.y=ny;
+      moved=true;break;
+    }
+  }
+  // record position history
+  posHistory.push({x:robot.x,y:robot.y,d:robot.dir});
+  if(posHistory.length>20)posHistory.shift();
+
+  if(simTick%65===0)nudgeObs();
+  checkTarget();
+}
+function nudgeObs(){
+  const i=Math.floor(Math.random()*obs.length);
+  const o=obs[i];
+  const d=DIRS[Math.floor(Math.random()*4)];
+  const nx=o.x+d.dx,ny=o.y+d.dy;
+  const nearBot=Math.abs(nx-robot.x)+Math.abs(ny-robot.y)<3;
+  const nearTgt=Math.abs(nx-target.x)+Math.abs(ny-target.y)<2;
+  if(!blocked(nx,ny)&&!nearBot&&!nearTgt)obs[i]={x:nx,y:ny};
+}
+function checkTarget(){
+  if(robot.x===target.x&&robot.y===target.y){
+    tgtCount++;document.getElementById('s-tgt').textContent=tgtCount;
+    posHistory=[];
+    let tx,ty,t=0;
+    do{tx=2+Math.floor(Math.random()*(COLS-4));ty=2+Math.floor(Math.random()*(ROWS-4));t++;}
+    while(blocked(tx,ty)&&t<100);
+    target={x:tx,y:ty};
+    addLog('🎯 Target #'+tgtCount+' reached! New target set.','#34d399');
+  }
+}
+
+// ════════════════ RENDER ════════════════
+function render(){
+  ctx.fillStyle='#0a0e1a';ctx.fillRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle='#0f172a';ctx.lineWidth=.5;
+  for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*TILE,0);ctx.lineTo(x*TILE,H);ctx.stroke();}
+  for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*TILE);ctx.lineTo(W,y*TILE);ctx.stroke();}
+  // walls
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)
+    if(map[y][x]===1){ctx.fillStyle='#1e3a5f';ctx.fillRect(x*TILE,y*TILE,TILE,TILE);}
+  // obstacles
+  obs.forEach(o=>{
+    ctx.fillStyle='#f4727215';ctx.strokeStyle='#f4727244';ctx.lineWidth=1;
+    ctx.fillRect(o.x*TILE+1,o.y*TILE+1,TILE-2,TILE-2);
+    ctx.strokeRect(o.x*TILE+1,o.y*TILE+1,TILE-2,TILE-2);
+  });
+  // trail
+  robot.trail.forEach((t,i)=>{
+    const a=(i/robot.trail.length)*.22;
+    ctx.fillStyle=`rgba(110,231,247,${a})`;
+    ctx.fillRect(t.x*TILE+5,t.y*TILE+5,6,6);
+  });
+  // sensor rays
+  const cx=robot.x*TILE+TILE/2,cy=robot.y*TILE+TILE/2;
+  [[robot.dir,'#6ee7f720'],[(robot.dir+1)%4,'#fbbf2415'],[(robot.dir+3)%4,'#fbbf2415']].forEach(([d,c])=>{
+    ctx.strokeStyle=c;ctx.lineWidth=1;ctx.setLineDash([2,5]);
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+DIRS[d].dx*9*TILE,cy+DIRS[d].dy*9*TILE);ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  // target
+  const tx=target.x*TILE+TILE/2,ty=target.y*TILE+TILE/2;
+  ctx.strokeStyle='#34d399';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(tx,ty,TILE/2-2,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='#34d39944';
+  ctx.beginPath();ctx.arc(tx,ty,TILE/2+1+Math.sin(simTick*.15)*2,0,Math.PI*2);ctx.stroke();
+  // robot
+  const rx=robot.x*TILE,ry=robot.y*TILE;
+  const g=ctx.createRadialGradient(rx+TILE/2,ry+TILE/2,1,rx+TILE/2,ry+TILE/2,TILE);
+  g.addColorStop(0,'#6ee7f730');g.addColorStop(1,'transparent');
+  ctx.fillStyle=g;ctx.fillRect(rx-2,ry-2,TILE+4,TILE+4);
+  ctx.fillStyle=isEvolving?'#a78bfa':'#6ee7f7';
+  const bx=rx+2,by=ry+2,bw=TILE-4,bh=TILE-4,br=3;
+  ctx.beginPath();
+  ctx.moveTo(bx+br,by);ctx.lineTo(bx+bw-br,by);ctx.arcTo(bx+bw,by,bx+bw,by+br,br);
+  ctx.lineTo(bx+bw,by+bh-br);ctx.arcTo(bx+bw,by+bh,bx+bw-br,by+bh,br);
+  ctx.lineTo(bx+br,by+bh);ctx.arcTo(bx,by+bh,bx,by+bh-br,br);
+  ctx.lineTo(bx,by+br);ctx.arcTo(bx,by,bx+br,by,br);ctx.closePath();ctx.fill();
+  const hd=DIRS[robot.dir];
+  ctx.fillStyle='#0a0e1a';
+  ctx.beginPath();ctx.arc(rx+TILE/2+hd.dx*(TILE/2-4),ry+TILE/2+hd.dy*(TILE/2-4),2.5,0,Math.PI*2);ctx.fill();
+}
+
+// ════════════════ UI ════════════════
+function updateDecUI(dec){
+  const dc={right:'#6ee7f7',down:'#6ee7f7',left:'#6ee7f7',up:'#6ee7f7',
+    stop:'#f47272',forward:'#6ee7f7',reverse:'#f47272','turn-left':'#a78bfa','turn-right':'#a78bfa',
+    crawl:'#fbbf24',walk:'#6ee7f7',run:'#6ee7f7',sprint:'#34d399'};
+  const c=dc[dec.direction]||'#6ee7f7';
+  document.getElementById('d-dir').textContent=dec.direction;
+  document.getElementById('d-dir').style.cssText=`background:${c}22;color:${c}`;
+  const obs=dec.obstacle;
+  document.getElementById('d-obs').textContent=obs?'BLOCKED':'CLEAR';
+  document.getElementById('d-obs').style.cssText=obs?'background:#f4727222;color:#f47272':'background:#34d39922;color:#34d399';
+  document.getElementById('d-spd').textContent=dec.speed||'—';
+  const ex=document.getElementById('d-extra');ex.innerHTML='';
+  ['proximity','side_clear','bat_ok','terrain','visual_clear','zone'].forEach(k=>{
+    if(dec[k]!==undefined){
+      const r=document.createElement('div');r.className='dr';
+      r.innerHTML=`<span class="dk">${k}</span><span class="dv" style="background:#ffffff0a;color:#94a3b8">${dec[k]}</span>`;
+      ex.appendChild(r);
+    }
+  });
+  const cp=Math.round(dec.conf*100);
+  document.getElementById('conf-bar').style.width=cp+'%';
+  document.getElementById('conf-val').textContent=cp+'%';
+}
+function updateSchemaUI(){
+  const s=schemas[schemaV-1];
+  document.getElementById('s-ver').textContent='v'+schemaV;
+  document.getElementById('s-name').textContent=s.name.length>35?s.name.slice(0,35)+'…':s.name;
+  let html='';
+  Object.entries(s.questions).forEach(([k,v])=>{
+    html+=`<span class="k">"${k}"</span>:{<span class="t">${v.type}</span>`;
+    if(v.criteria)html+=` <span class="s">[${v.criteria.slice(0,3).join(',')}${v.criteria.length>3?'…':''}]</span>`;
+    html+='}\n';
+  });
+  document.getElementById('schema-box').innerHTML=html;
+}
+function setPhase(p){
+  const m={seed:'SEED p-seed',deploy:'DEPLOY p-deploy',issue:'ISSUE p-issue',llm:'LLM p-llm',lock:'LOCKED p-lock'};
+  const[t,c]=m[p].split(' ');
+  const b=document.getElementById('phase-badge');b.textContent=t;b.className='badge '+c;
+}
+function addLog(msg,color='#475569'){
+  const w=document.getElementById('log-wrap');
+  const e=document.createElement('div');e.className='le';e.style.color=color;
+  const t=new Date().toLocaleTimeString('id',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  e.textContent=`[${t}] ${msg}`;
+  w.appendChild(e);w.scrollTop=w.scrollHeight;
+  while(w.children.length>100)w.removeChild(w.firstChild);
+}
+
+// ════════════════ LLM GENERATION (animated) ════════════════
+function runLLMGeneration(issue, cap, onDone){
+  const overlay=document.getElementById('llm-overlay');
+  const lineEl=document.getElementById('llm-line');
+  const progEl=document.getElementById('llm-prog');
+  const issueEl=document.getElementById('llm-issue');
+
+  issueEl.textContent='⚠ '+issue.label;
+  overlay.classList.add('show');
+  isEvolving=true;
+
+  const steps=[
+    {txt:`Analyzing: "${issue.label}"…`,       pct:15},
+    {txt:`Scanning unused sensors…`,             pct:30},
+    {txt:`Found: ${cap.sensor} → "${cap.name}"`,pct:50},
+    {txt:`Writing question: ${Object.keys(cap.q)[0]} (${Object.values(cap.q)[0].type})`,pct:68},
+    {txt:`Sending to Compare Gate…`,             pct:82},
+    {txt:`+${(5+Math.random()*6).toFixed(1)}% accuracy — PROMOTED ✓`,pct:100},
+  ];
+
+  let i=0;
+  function nextStep(){
+    if(i>=steps.length){
+      setTimeout(()=>{overlay.classList.remove('show');progEl.style.width='0';onDone();},400);
+      return;
+    }
+    const s=steps[i];
+    lineEl.textContent=s.txt;
+    progEl.style.width=s.pct+'%';
+    addLog('🧠 '+s.txt,'#a78bfa');
+    i++;setTimeout(nextStep,480);
+  }
+  nextStep();
+}
+
+// ════════════════ EVOLVE ════════════════
+function evolve(issue){
+  if(isEvolving)return;
+  isEvolving=true;
+  evoCount++;
+  document.getElementById('s-evo').textContent=evoCount;
+  setPhase('issue');
+  document.getElementById('btn-force').style.display='none';
+  addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━','#1e293b');
+  addLog('⚡ ISSUE: '+issue.label,'#f47272');
+
+  // pick cap that best matches issue
+  const avail=CAPS.filter(c=>!unlockedIds.includes(c.id));
+  let cap;
+  if(avail.length>0){
+    cap=avail.find(c=>c.issue===issue.label)||avail[Math.floor(Math.random()*Math.min(3,avail.length))];
+  } else {
+    // synthesize new composite
+    synthCount++;
+    cap={
+      id:'synth'+synthCount,
+      issue:issue.label,
+      sensor:'composite',
+      name:`Synthesis v${synthCount}`,
+      effect:'side', // reuse an existing effect to strengthen
+      q:{[`meta_${synthCount}`]:{type:'choice',criteria:['exploit','explore','escape','adapt']}},
+    };
+  }
+
+  setTimeout(()=>{
+    setPhase('llm');
+    runLLMGeneration(issue, cap, ()=>{
+      // promote
+      const prev=schemas[schemaV-1];
+      const newQ={...prev.questions,...cap.q};
+      const newName=avail.length>0
+        ?(prev.name.length>30?`Schema v${schemaV+1}`:prev.name+' + '+cap.name)
+        :`Schema v${schemaV+1} (Synthesis)`;
+      schemas.push({version:schemaV+1,name:newName,caps:[...prev.caps,cap.id],questions:newQ});
+      unlockedIds.push(cap.id);
+      activeCaps.add(cap.effect);
+      schemaV++;
+      updateSchemaUI();
+      setPhase('lock');
+      addLog(`🔒 Schema v${schemaV} locked: "${schemas[schemaV-1].name}"`,'#fbbf24');
+      addLog(`✅ Robot now uses: ${cap.name} (${cap.sensor})`,'#6ee7f7');
+      addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━','#1e293b');
+      posHistory=[];
+      setTimeout(()=>{
+        isEvolving=false;
+        setPhase('deploy');
+        document.getElementById('btn-force').style.display='';
+      },500);
+    });
+  },300);
+}
+
+function forceReflect(){
+  evolve({id:'manual',label:'manual evolution triggered'});
+}
+
+// ════════════════ MAIN LOOP ════════════════
+let animTimer=null;
+function tick(){
+  if(!simRunning)return;
+  simTick++;
+  updateSensors();
+  const dec=decide();
+  if(!isEvolving)applyMove(dec);
+  updateDecUI(dec);
+  render();
+  decCount++;
+  document.getElementById('s-dec').textContent=decCount;
+
+  // issue detection every 8 ticks
+  if(simTick>30&&simTick%8===0&&!isEvolving){
+    const issue=detectIssue();
+    if(issue){
+      evolve(issue);
+    }
+  }
+
+  if(simTick===6){
+    addLog('✅ LLM seeded schema v1 → Basic Navigation','#a78bfa');
+    setPhase('deploy');
+    addLog('🚀 Laya running — issue detection active','#6ee7f7');
+    document.getElementById('btn-force').style.display='';
+  }
+
+  animTimer=setTimeout(tick,90);
+}
+
+// ════════════════ CONTROLS ════════════════
+function startSim(){
+  if(simRunning)return;
+  simRunning=true;
+  document.getElementById('btn-start').textContent='⏸ Running';
+  document.getElementById('btn-start').disabled=true;
+  addLog('🤖 Simulation started','#6ee7f7');
+  addLog('🔍 Issue detector: oscillation / stuck / cornered','#475569');
+  addLog('🧠 On each issue → LLM generates new schema capability','#475569');
+  tick();
+}
+function resetSim(){
+  simRunning=false;clearTimeout(animTimer);
+  simTick=0;decCount=0;evoCount=0;tgtCount=0;synthCount=0;
+  isEvolving=false;posHistory=[];
+  schemas=[{version:1,name:'Basic Navigation',caps:[],questions:{
+    direction:{type:'choice',criteria:['forward','left','right','stop']},
+    obstacle:{type:'noul',instructions:'Is path blocked ahead?'},
+  }}];
+  schemaV=1;activeCaps=new Set();unlockedIds=[];
+  robot={x:2,y:2,dir:0,trail:[]};sv.bat=100;
+  buildMap();
+  ['s-dec','s-evo','s-tgt'].forEach(id=>document.getElementById(id).textContent='0');
+  document.getElementById('s-ver').textContent='v1';
+  document.getElementById('log-wrap').innerHTML='';
+  document.getElementById('sensor-list').innerHTML='';
+  document.getElementById('llm-overlay').classList.remove('show');
+  document.getElementById('btn-start').textContent='▶ Start';
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-force').style.display='none';
+  setPhase('seed');updateSchemaUI();updateSensors();render();
+  addLog('Klik ▶ Start — issue triggers evolution automatically','#475569');
+}
+
+// ════════════════ OBSTACLE INJECTION ════════════════
+function safeCell(x,y){
+  return x>0&&y>0&&x<COLS-1&&y<ROWS-1&&!blocked(x,y)
+    &&!(x===robot.x&&y===robot.y)&&!(x===target.x&&y===target.y);
+}
+function injectObs(n){
+  let placed=0,tries=0;
+  while(placed<n&&tries<200){
+    tries++;
+    const angle=Math.random()*Math.PI*2;
+    const dist=4+Math.floor(Math.random()*5);
+    const x=robot.x+Math.round(Math.cos(angle)*dist);
+    const y=robot.y+Math.round(Math.sin(angle)*dist);
+    if(safeCell(x,y)){obs.push({x,y});placed++;}
+  }
+  addLog(`🧱 +${placed} obstacle(s) injected near robot`,'#f59e0b');
+}
+function injectWall(){
+  const d=DIRS[robot.dir];
+  const bx=robot.x+d.dx*3,by=robot.y+d.dy*3;
+  const perp=DIRS[(robot.dir+1)%4];
+  let placed=0;
+  for(let i=-1;i<=2;i++){
+    const x=bx+perp.dx*i,y=by+perp.dy*i;
+    if(safeCell(x,y)){obs.push({x,y});placed++;}
+  }
+  addLog(`🚧 Wall ahead (${placed} blocks)`,'#f59e0b');
+}
+function injectMaze(){
+  const d=DIRS[robot.dir];
+  const sx=robot.x+d.dx*4,sy=robot.y+d.dy*4;
+  const perp=DIRS[(robot.dir+1)%4];
+  const cells=[
+    {x:sx,y:sy},{x:sx+d.dx,y:sy+d.dy},{x:sx+d.dx*2,y:sy+d.dy*2},
+    {x:sx+perp.dx,y:sy+perp.dy},{x:sx+perp.dx*2,y:sy+perp.dy*2},
+  ];
+  let placed=0;
+  cells.forEach(c=>{if(safeCell(c.x,c.y)){obs.push(c);placed++;}});
+  addLog(`🌀 Mini-maze injected (${placed} blocks)`,'#f59e0b');
+}
+function injectCage(){
+  const blockedDir=Math.floor(Math.random()*4);
+  let placed=0;
+  for(let d=0;d<4;d++){
+    if(d===blockedDir) continue;
+    for(let dist=1;dist<=2;dist++){
+      const x=robot.x+DIRS[d].dx*dist,y=robot.y+DIRS[d].dy*dist;
+      if(safeCell(x,y)){obs.push({x,y});placed++;}
+    }
+  }
+  addLog(`⛓ Robot caged! Exit: ${DN[blockedDir]} (${placed} blocks)`,'#f47272');
+}
+
+buildMap();updateSchemaUI();updateSensors();render();
+addLog('EKS: setiap issue → LLM generate schema baru → robot makin pintar','#475569');
+addLog('Issue types: left-right oscillation | not making progress | cornered','#64748b');
+</script>
+</body>
+</html>

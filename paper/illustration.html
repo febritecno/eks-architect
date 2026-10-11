@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolutionary Knowledge System — Ilustrasi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0e1a;
+    color: #e2e8f0;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    padding: 48px 24px 24px;
+  }
+  header h1 {
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    font-weight: 700;
+    background: linear-gradient(135deg, #6ee7f7, #a78bfa, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  header p {
+    color: #64748b;
+    font-size: 0.85rem;
+    margin-top: 8px;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px;
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 8px 20px;
+    border-radius: 9999px;
+    border: 1px solid #1e293b;
+    background: #111827;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+  .tab.active, .tab:hover {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-color: #334155;
+  }
+  .tab.active { color: #6ee7f7; border-color: #6ee7f744; }
+
+  /* ── Scenes ── */
+  .scene { display: none; padding: 16px 24px 48px; }
+  .scene.active { display: block; }
+
+  /* ── Canvas wrapper ── */
+  .canvas {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ── Node cards ── */
+  .node {
+    border-radius: 12px;
+    padding: 16px 20px;
+    border: 1px solid transparent;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .node-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+    opacity: 0.6;
+  }
+  .node-name {
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .node-desc {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .node-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  /* node colors */
+  .node-llm    { background: #0f172a; border-color: #a78bfa44; }
+  .node-llm .node-name { color: #a78bfa; }
+  .node-llm .node-badge { background: #a78bfa22; color: #a78bfa; }
+
+  .node-laya   { background: #0f172a; border-color: #6ee7f744; }
+  .node-laya .node-name { color: #6ee7f7; }
+  .node-laya .node-badge { background: #6ee7f722; color: #6ee7f7; }
+
+  .node-core   { background: #0f172a; border-color: #fbbf2444; }
+  .node-core .node-name { color: #fbbf24; }
+  .node-core .node-badge { background: #fbbf2422; color: #fbbf24; }
+
+  .node-gate   { background: #0f172a; border-color: #34d39944; }
+  .node-gate .node-name { color: #34d399; }
+  .node-gate .node-badge { background: #34d39922; color: #34d399; }
+
+  .node-reflect { background: #0f172a; border-color: #f4727244; }
+  .node-reflect .node-name { color: #f47272; }
+  .node-reflect .node-badge { background: #f4727222; color: #f47272; }
+
+  /* ── Flow arrows ── */
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 8px 0;
+  }
+  .arrow {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .arrow-line {
+    height: 2px;
+    width: 100%;
+    position: relative;
+    overflow: visible;
+  }
+  .arrow-label {
+    font-size: 0.65rem;
+    color: #475569;
+    white-space: nowrap;
+  }
+
+  /* animated flow line */
+  .arrow-track {
+    width: 100%;
+    height: 2px;
+    background: #1e293b;
+    border-radius: 1px;
+    overflow: hidden;
+    position: relative;
+  }
+  .arrow-pulse {
+    position: absolute;
+    top: 0; left: -40%;
+    width: 40%;
+    height: 100%;
+    border-radius: 1px;
+    animation: flowRight 2s linear infinite;
+  }
+
+  .arrow-down-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 4px 0;
+  }
+  .arrow-track-v {
+    width: 2px;
+    height: 40px;
+    background: #1e293b;
+    border-radius: 1px;
+    overflow: hidden;
+    position: relative;
+  }
+  .arrow-pulse-v {
+    position: absolute;
+    left: 0; top: -40%;
+    width: 100%;
+    height: 40%;
+    border-radius: 1px;
+    animation: flowDown 2s linear infinite;
+  }
+
+  @keyframes flowRight {
+    0%   { left: -40%; }
+    100% { left: 100%; }
+  }
+  @keyframes flowDown {
+    0%   { top: -40%; }
+    100% { top: 100%; }
+  }
+
+  /* arrow colors */
+  .pulse-purple { background: linear-gradient(90deg, transparent, #a78bfa, transparent); }
+  .pulse-cyan   { background: linear-gradient(90deg, transparent, #6ee7f7, transparent); }
+  .pulse-yellow { background: linear-gradient(90deg, transparent, #fbbf24, transparent); }
+  .pulse-green  { background: linear-gradient(90deg, transparent, #34d399, transparent); }
+  .pulse-red    { background: linear-gradient(90deg, transparent, #f47272, transparent); }
+
+  .pulse-purple-v { background: linear-gradient(180deg, transparent, #a78bfa, transparent); }
+  .pulse-cyan-v   { background: linear-gradient(180deg, transparent, #6ee7f7, transparent); }
+  .pulse-yellow-v { background: linear-gradient(180deg, transparent, #fbbf24, transparent); }
+  .pulse-green-v  { background: linear-gradient(180deg, transparent, #34d399, transparent); }
+  .pulse-red-v    { background: linear-gradient(180deg, transparent, #f47272, transparent); }
+
+  /* arrowhead */
+  .arrowhead {
+    width: 0; height: 0;
+    flex-shrink: 0;
+  }
+  .arrowhead-right {
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid;
+  }
+  .arrowhead-down {
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 8px solid;
+  }
+
+  .ah-purple { border-left-color: #a78bfa; border-top-color: #a78bfa; }
+  .ah-cyan   { border-left-color: #6ee7f7; border-top-color: #6ee7f7; }
+  .ah-yellow { border-left-color: #fbbf24; border-top-color: #fbbf24; }
+  .ah-green  { border-left-color: #34d399; border-top-color: #34d399; }
+  .ah-red    { border-left-color: #f47272; border-top-color: #f47272; }
+
+  /* grid layouts */
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── Scene 1: Overview ── */
+  #scene-overview .canvas {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── Lifecycle steps ── */
+  .lifecycle {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .lc-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 10px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: all 0.5s;
+  }
+  .lc-step.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .lc-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+  .lc-content h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+  .lc-content p  { font-size: 0.78rem; opacity: 0.7; line-height: 1.5; }
+
+  .lc-connector {
+    width: 2px; height: 20px;
+    margin-left: 31px;
+    position: relative;
+    overflow: hidden;
+    background: #1e293b;
+  }
+  .lc-connector .arrow-pulse-v {
+    animation-duration: 1.5s;
+  }
+
+  /* ── Compare Gate scene ── */
+  .compare-demo {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin: 16px 0;
+  }
+  .compare-schema {
+    padding: 14px;
+    border-radius: 10px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    font-size: 0.75rem;
+  }
+  .compare-schema h4 { font-weight: 700; margin-bottom: 8px; }
+  .compare-schema .metric {
+    display: flex; justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid #1e293b22;
+  }
+  .compare-schema .metric:last-child { border-bottom: none; }
+  .vs-badge {
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #475569;
+  }
+  .result-box {
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-top: 12px;
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  .result-promote { background: #064e3b; color: #34d399; border: 1px solid #34d39944; }
+  .result-reject  { background: #450a0a; color: #f47272; border: 1px solid #f4727244; }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 12px 2px currentColor; }
+  }
+
+  /* ── Reflect scene ── */
+  .reflect-demo {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .output-stream {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .output-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.4s;
+  }
+  .output-item.show { opacity: 1; transform: translateY(0); }
+  .output-item.normal { background: #0d1b2a; }
+  .output-item.repeat { background: #2d1515; border: 1px solid #f4727244; }
+  .output-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-normal { background: #6ee7f7; }
+  .dot-repeat { background: #f47272; animation: blink 0.8s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .reflect-alert {
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: #1a0505;
+    border: 1px solid #f4727266;
+    color: #f47272;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.5s;
+    margin-bottom: 12px;
+  }
+  .reflect-alert.show { opacity: 1; }
+  .reflect-icon { font-size: 1.2rem; }
+
+  /* ── Stats bar ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    max-width: 900px;
+    margin: 32px auto 0;
+    padding: 0 24px;
+  }
+  .stat-card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-label { font-size: 0.7rem; opacity: 0.5; margin-top: 4px; }
+
+  /* animate counter */
+  .count-up { display: inline-block; }
+
+  /* ── Principle cards ── */
+  .principles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .principle-card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .principle-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .pc-1::before { background: linear-gradient(90deg, #fbbf24, transparent); }
+  .pc-2::before { background: linear-gradient(90deg, #34d399, transparent); }
+  .pc-3::before { background: linear-gradient(90deg, #f47272, transparent); }
+  .principle-card h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 8px; }
+  .principle-card p { font-size: 0.75rem; opacity: 0.65; line-height: 1.6; }
+  .principle-icon { font-size: 1.5rem; margin-bottom: 10px; }
+
+  /* section heading */
+  .section-title {
+    text-align: center;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #475569;
+    margin: 32px 0 16px;
+  }
+
+  /* responsive */
+  @media(max-width: 600px) {
+    .grid-3 { grid-template-columns: 1fr; }
+    .flow-row { flex-direction: column; }
+    .compare-row { grid-template-columns: 1fr; }
+  }
+
+  /* play button */
+  .play-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 auto 24px;
+    padding: 8px 20px;
+    border-radius: 9999px;
+    border: 1px solid #334155;
+    background: #111827;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .play-btn:hover { background: #1e293b; color: #e2e8f0; }
+  .play-icon { font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Evolutionary Knowledge System</h1>
+  <p>LLM sebagai Arsitek · Laya sebagai Executor · Draft v0.1 — Oktober 2026</p>
+</header>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-val" style="color:#6ee7f7"><span class="count-up" data-target="7">0</span>ms</div>
+    <div class="stat-label">Laya decision latency</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val" style="color:#a78bfa"><span class="count-up" data-target="395">0</span>/s</div>
+    <div class="stat-label">decisions per second</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val" style="color:#fbbf24">~1<span style="font-size:1rem">GB</span></div>
+    <div class="stat-label">Laya model size</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val" style="color:#34d399">0</div>
+    <div class="stat-label">LLM calls at runtime</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="showScene('overview')">Arsitektur</div>
+  <div class="tab" onclick="showScene('lifecycle')">Lifecycle</div>
+  <div class="tab" onclick="showScene('principles')">3 Prinsip</div>
+  <div class="tab" onclick="showScene('compare')">Compare Gate</div>
+  <div class="tab" onclick="showScene('reflect')">Reflect Event</div>
+</div>
+
+<!-- ═══════════════ SCENE: OVERVIEW ═══════════════ -->
+<div id="scene-overview" class="scene active">
+  <div class="canvas">
+
+    <!-- Row 1: LLM — Gate — Laya -->
+    <div class="grid-3" style="gap:0; align-items:stretch;">
+      <div class="node node-llm">
+        <div class="node-title">Arsitek</div>
+        <div class="node-name">LLM Layer</div>
+        <div class="node-desc">GPT · Claude · Qwen<br>Merancang & mereview schema</div>
+        <span class="node-badge">Dipanggil jarang</span>
+      </div>
+
+      <div class="arrow" style="padding: 0 8px;">
+        <div class="arrow-track">
+          <div class="arrow-pulse pulse-green" style="animation-delay:0s"></div>
+        </div>
+        <div class="arrow-label">schema</div>
+        <div class="arrowhead arrowhead-right ah-green"></div>
+      </div>
+
+      <div class="node node-gate">
+        <div class="node-title">Filter</div>
+        <div class="node-name">Compare Gate</div>
+        <div class="node-desc">Evaluasi kandidat schema<br>Promote jika lebih baik</div>
+        <span class="node-badge">Threshold guard</span>
+      </div>
+
+      <div class="arrow" style="padding: 0 8px;">
+        <div class="arrow-track">
+          <div class="arrow-pulse pulse-cyan" style="animation-delay:0.4s"></div>
+        </div>
+        <div class="arrow-label">proven schema</div>
+        <div class="arrowhead arrowhead-right ah-cyan"></div>
+      </div>
+
+      <div class="node node-laya">
+        <div class="node-title">Executor</div>
+        <div class="node-name">Laya</div>
+        <div class="node-desc">Runtime decisions<br>7–14ms · Offline · Gratis</div>
+        <span class="node-badge">395 q/s</span>
+      </div>
+    </div>
+
+    <!-- Row 2: arrows down to core -->
+    <div style="display:flex; justify-content:space-around; padding: 0 60px;">
+      <div class="arrow-down-wrap">
+        <div class="arrow-track-v">
+          <div class="arrow-pulse-v pulse-green-v" style="animation-delay:0.2s"></div>
+        </div>
+        <div class="arrowhead arrowhead-down ah-green"></div>
+      </div>
+      <div style="flex:1"></div>
+      <div class="arrow-down-wrap">
+        <div class="arrow-track-v">
+          <div class="arrow-pulse-v pulse-cyan-v" style="animation-delay:0.6s"></div>
+        </div>
+        <div class="arrowhead arrowhead-down ah-cyan"></div>
+      </div>
+    </div>
+
+    <!-- Row 3: Permanent Core -->
+    <div style="display:flex; justify-content:center; padding: 0 40px;">
+      <div class="node node-core" style="width:100%; max-width:500px; text-align:center;">
+        <div class="node-title">Immutable Storage</div>
+        <div class="node-name">🔒 Permanent Core</div>
+        <div class="node-desc">Schema yang telah terbukti · Version-locked · Audit trail<br>Tidak bisa diubah tanpa melalui proses evolusi</div>
+        <span class="node-badge">Frozen after promote</span>
+      </div>
+    </div>
+
+    <!-- Row 4: down to reflect -->
+    <div class="arrow-down-wrap" style="margin: 0 auto;">
+      <div class="arrow-track-v">
+        <div class="arrow-pulse-v pulse-red-v" style="animation-delay:0.8s"></div>
+      </div>
+      <div class="arrowhead arrowhead-down ah-red"></div>
+    </div>
+
+    <!-- Row 5: Reflect Engine -->
+    <div style="display:flex; justify-content:center; padding: 0 40px;">
+      <div class="node node-reflect" style="width:100%; max-width:500px; text-align:center;">
+        <div class="node-title">Monitor & Recovery</div>
+        <div class="node-name">⚡ Reflect Engine</div>
+        <div class="node-desc">Deteksi repetisi output · Confidence drop · Error rate spike<br>Trigger LLM review hanya saat dibutuhkan</div>
+        <span class="node-badge">→ triggers LLM</span>
+      </div>
+    </div>
+
+    <!-- arrow back to LLM -->
+    <div style="text-align:center; padding: 12px; color:#f47272; font-size:0.7rem; opacity:0.7;">
+      ↩ reflect event → LLM dipanggil untuk deliberate review → schema kandidat baru
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ SCENE: LIFECYCLE ═══════════════ -->
+<div id="scene-lifecycle" class="scene">
+  <button class="play-btn" onclick="playLifecycle()">
+    <span class="play-icon">▶</span> Play animasi
+  </button>
+  <div class="canvas">
+    <div class="lifecycle" id="lifecycle-steps">
+
+      <div class="lc-step" id="lc1">
+        <div class="lc-num" style="background:#a78bfa22; color:#a78bfa;">1</div>
+        <div class="lc-content">
+          <h3 style="color:#a78bfa">SEED — LLM merancang schema</h3>
+          <p>LLM dipanggil sekali untuk domain baru. Menghasilkan schema JSON terstruktur (choice/score/noul). Tidak butuh training — instruksi runtime sudah cukup untuk Laya.</p>
+        </div>
+      </div>
+      <div class="lc-connector"><div class="arrow-pulse-v pulse-purple-v"></div></div>
+
+      <div class="lc-step" id="lc2">
+        <div class="lc-num" style="background:#6ee7f722; color:#6ee7f7;">2</div>
+        <div class="lc-content">
+          <h3 style="color:#6ee7f7">DEPLOY — Laya eksekusi runtime</h3>
+          <p>Schema di-deploy ke Laya. Runtime berjalan tanpa LLM sama sekali. 7ms per keputusan, 395 q/s throughput, fully offline. Zero token cost.</p>
+        </div>
+      </div>
+      <div class="lc-connector"><div class="arrow-pulse-v pulse-cyan-v"></div></div>
+
+      <div class="lc-step" id="lc3">
+        <div class="lc-num" style="background:#f4727222; color:#f47272;">3</div>
+        <div class="lc-content">
+          <h3 style="color:#f47272">MONITOR — Reflect Engine aktif</h3>
+          <p>Sistem terus memantau output Laya. Jika output berulang, confidence drop, atau error rate naik — reflect event dipicu secara otomatis.</p>
+        </div>
+      </div>
+      <div class="lc-connector"><div class="arrow-pulse-v pulse-red-v"></div></div>
+
+      <div class="lc-step" id="lc4">
+        <div class="lc-num" style="background:#34d39922; color:#34d399;">4</div>
+        <div class="lc-content">
+          <h3 style="color:#34d399">EVOLVE — LLM review + Compare Gate</h3>
+          <p>LLM dipanggil untuk deliberate review. Menghasilkan schema kandidat baru. Kandidat masuk Compare Gate — hanya yang terbukti lebih baik (delta > 5%) yang dipromosikan.</p>
+        </div>
+      </div>
+      <div class="lc-connector"><div class="arrow-pulse-v pulse-green-v"></div></div>
+
+      <div class="lc-step" id="lc5">
+        <div class="lc-num" style="background:#fbbf2422; color:#fbbf24;">5</div>
+        <div class="lc-content">
+          <h3 style="color:#fbbf24">LOCK — Permanent Core dikunci</h3>
+          <p>Schema yang dipromosikan dikunci ke Permanent Core. Tidak bisa diubah sembarangan. Setiap perubahan harus melewati proses evolusi lengkap dari awal. Audit trail tersimpan.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCENE: PRINCIPLES ═══════════════ -->
+<div id="scene-principles" class="scene">
+  <div class="canvas">
+    <div class="principles">
+      <div class="principle-card pc-1">
+        <div class="principle-icon">🔒</div>
+        <h3 style="color:#fbbf24">Immutable Core</h3>
+        <p>Pengetahuan yang sudah terbukti baik <strong>tidak boleh diubah sembarangan</strong>. Setiap schema yang dipromosikan mendapat version lock. Seperti Git commit — sejarah tidak bisa dihapus, hanya bisa ditambah.</p>
+      </div>
+      <div class="principle-card pc-2">
+        <div class="principle-icon">⚖️</div>
+        <h3 style="color:#34d399">Comparison Gate</h3>
+        <p>Kandidat pengetahuan baru harus <strong>mengalahkan yang lama</strong> secara terukur sebelum dipromosikan. Threshold 5% delta akurasi. Tidak ada update otomatis tanpa justifikasi data.</p>
+      </div>
+      <div class="principle-card pc-3">
+        <div class="principle-icon">⚡</div>
+        <h3 style="color:#f47272">Reflect Event</h3>
+        <p>Repetisi output = sinyal sistem stuck. <strong>LLM hanya dipanggil saat ada anomali</strong> — bukan setiap request. Ini yang membuat sistem efisien: 99% runtime tanpa LLM, 1% deliberate evolution.</p>
+      </div>
+    </div>
+
+    <div class="section-title">Analogi</div>
+    <div style="max-width:600px; margin:0 auto; padding:20px; background:#0f172a; border:1px solid #1e293b; border-radius:12px; font-size:0.78rem; line-height:1.8; color:#94a3b8;">
+      <strong style="color:#e2e8f0">LLM</strong> = Insinyur senior yang merancang prosedur operasional<br>
+      <strong style="color:#e2e8f0">Laya</strong> = Operator yang menjalankan prosedur dengan tepat dan cepat<br>
+      <strong style="color:#e2e8f0">Permanent Core</strong> = SOP yang sudah divalidasi dan tidak bisa diubah tanpa approval<br>
+      <strong style="color:#e2e8f0">Compare Gate</strong> = Review board — prosedur baru harus terbukti lebih baik<br>
+      <strong style="color:#e2e8f0">Reflect Event</strong> = Alarm saat operator mulai berulang / hasil tidak sesuai ekspektasi
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCENE: COMPARE GATE ═══════════════ -->
+<div id="scene-compare" class="scene">
+  <div class="compare-demo">
+    <div class="section-title">Simulasi Compare Gate</div>
+
+    <div class="compare-row">
+      <div class="compare-schema">
+        <h4 style="color:#94a3b8">Schema Lama <span style="font-size:0.65rem; opacity:0.5">v2</span></h4>
+        <div class="metric"><span>Accuracy</span><span style="color:#94a3b8">71.2%</span></div>
+        <div class="metric"><span>Avg confidence</span><span style="color:#94a3b8">0.68</span></div>
+        <div class="metric"><span>Edge cases</span><span style="color:#94a3b8">12/20</span></div>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="compare-schema">
+        <h4 style="color:#34d399">Kandidat Baru <span style="font-size:0.65rem; opacity:0.5">v3</span></h4>
+        <div class="metric"><span>Accuracy</span><span style="color:#34d399">78.9%</span></div>
+        <div class="metric"><span>Avg confidence</span><span style="color:#34d399">0.81</span></div>
+        <div class="metric"><span>Edge cases</span><span style="color:#34d399">17/20</span></div>
+      </div>
+    </div>
+
+    <div style="text-align:center; font-size:0.75rem; color:#475569; margin: 8px 0;">
+      Delta accuracy: <strong style="color:#34d399">+7.7%</strong> &gt; threshold 5% → PROMOTE ✓
+    </div>
+    <div class="result-box result-promote">✅ PROMOTED → Permanent Core v3</div>
+
+    <div style="margin-top:32px; border-top:1px solid #1e293b; padding-top:24px;">
+      <div class="compare-row">
+        <div class="compare-schema">
+          <h4 style="color:#94a3b8">Schema Lama <span style="font-size:0.65rem; opacity:0.5">v3</span></h4>
+          <div class="metric"><span>Accuracy</span><span style="color:#94a3b8">78.9%</span></div>
+          <div class="metric"><span>Avg confidence</span><span style="color:#94a3b8">0.81</span></div>
+          <div class="metric"><span>Edge cases</span><span style="color:#94a3b8">17/20</span></div>
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="compare-schema">
+          <h4 style="color:#f47272">Kandidat Baru <span style="font-size:0.65rem; opacity:0.5">v4</span></h4>
+          <div class="metric"><span>Accuracy</span><span style="color:#f47272">80.1%</span></div>
+          <div class="metric"><span>Avg confidence</span><span style="color:#f47272">0.79</span></div>
+          <div class="metric"><span>Edge cases</span><span style="color:#f47272">16/20</span></div>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:0.75rem; color:#475569; margin: 8px 0;">
+        Delta accuracy: <strong style="color:#f47272">+1.2%</strong> &lt; threshold 5% → REJECT ✗
+      </div>
+      <div class="result-box result-reject">✗ REJECTED — tidak cukup lebih baik</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCENE: REFLECT ═══════════════ -->
+<div id="scene-reflect" class="scene">
+  <button class="play-btn" onclick="playReflect()">
+    <span class="play-icon">▶</span> Simulasi reflect event
+  </button>
+  <div class="reflect-demo">
+    <div class="section-title">Output stream Laya</div>
+    <div class="output-stream" id="output-stream">
+      <div style="font-size:0.65rem; color:#475569; margin-bottom:4px;">monitoring last 10 outputs...</div>
+    </div>
+    <div class="reflect-alert" id="reflect-alert">
+      <span class="reflect-icon">⚡</span>
+      <div>
+        <strong>REFLECT EVENT triggered</strong> — repeat detected (80% same answer)<br>
+        <span style="font-size:0.7rem; opacity:0.8;">→ Calling LLM for deliberate review → generating new schema candidate...</span>
+      </div>
+    </div>
+    <div id="reflect-result" style="opacity:0; transition:opacity 0.5s;">
+      <div style="display:flex; gap:12px; align-items:center; padding:14px; background:#0f172a; border:1px solid #34d39944; border-radius:10px;">
+        <span style="font-size:1.2rem;">🧠</span>
+        <div style="font-size:0.78rem;">
+          <strong style="color:#34d399">LLM review selesai</strong><br>
+          <span style="opacity:0.7;">Schema baru dirancang → masuk Compare Gate → jika lebih baik, dipromosikan ke Permanent Core</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab navigation ──
+function showScene(id) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('scene-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Count-up animation ──
+function countUp(el, target, duration = 1200) {
+  let start = 0;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start += step;
+    if (start >= target) { el.textContent = target; clearInterval(timer); return; }
+    el.textContent = Math.floor(start);
+  }, 16);
+}
+window.addEventListener('load', () => {
+  document.querySelectorAll('.count-up').forEach(el => {
+    countUp(el, parseInt(el.dataset.target));
+  });
+});
+
+// ── Lifecycle animation ──
+function playLifecycle() {
+  const steps = ['lc1','lc2','lc3','lc4','lc5'];
+  steps.forEach(id => document.getElementById(id).classList.remove('visible'));
+  steps.forEach((id, i) => {
+    setTimeout(() => {
+      document.getElementById(id).classList.add('visible');
+    }, i * 500 + 200);
+  });
+}
+// auto-play on tab click
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (tab.textContent.trim() === 'Lifecycle') {
+      setTimeout(playLifecycle, 300);
+    }
+    if (tab.textContent.trim() === 'Reflect Event') {
+      setTimeout(() => {
+        document.getElementById('output-stream').querySelectorAll('.output-item').forEach(el => el.remove());
+        document.getElementById('reflect-alert').classList.remove('show');
+        document.getElementById('reflect-result').style.opacity = '0';
+      }, 100);
+    }
+  });
+});
+
+// ── Reflect simulation ──
+const outputs = [
+  { text: 'query: "fix null pointer"', answer: 'technical/complex', repeat: false },
+  { text: 'query: "explain useState"', answer: 'docs/simple', repeat: false },
+  { text: 'query: "write a sort fn"', answer: 'technical/complex', repeat: false },
+  { text: 'query: "what is closure"', answer: 'technical/complex', repeat: false },
+  { text: 'query: "refactor this loop"', answer: 'technical/complex', repeat: false },
+  { text: 'query: "add error handling"', answer: 'technical/complex', repeat: false },
+  { text: 'query: "explain async/await"', answer: 'technical/complex', repeat: true },
+  { text: 'query: "fix this promise"', answer: 'technical/complex', repeat: true },
+  { text: 'query: "what is useEffect"', answer: 'technical/complex', repeat: true },
+  { text: 'query: "help me debug"', answer: 'technical/complex', repeat: true },
+];
+
+function playReflect() {
+  const stream = document.getElementById('output-stream');
+  stream.querySelectorAll('.output-item').forEach(el => el.remove());
+  document.getElementById('reflect-alert').classList.remove('show');
+  document.getElementById('reflect-result').style.opacity = '0';
+
+  outputs.forEach((out, i) => {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'output-item ' + (out.repeat ? 'repeat' : 'normal');
+      el.innerHTML = `
+        <div class="output-dot ${out.repeat ? 'dot-repeat' : 'dot-normal'}"></div>
+        <span style="flex:1;opacity:0.7">${out.text}</span>
+        <span style="color:${out.repeat ? '#f47272' : '#6ee7f7'};font-weight:600">${out.answer}</span>
+      `;
+      stream.appendChild(el);
+      setTimeout(() => el.classList.add('show'), 50);
+
+      if (i === 9) {
+        setTimeout(() => {
+          document.getElementById('reflect-alert').classList.add('show');
+          setTimeout(() => {
+            document.getElementById('reflect-result').style.opacity = '1';
+          }, 1500);
+        }, 600);
+      }
+    }, i * 300);
+  });
+}
+</script>
+</body>
+</html>
