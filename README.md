@@ -6,6 +6,14 @@
 
 ---
 
+## Demo
+
+![Demo](paper/demo.gif)
+
+▶️ Full quality: [paper/demo-video.mov](paper/demo-video.mov)
+
+---
+
 ## What is EKS?
 
 EKS separates two roles that have traditionally been combined in a single LLM:
